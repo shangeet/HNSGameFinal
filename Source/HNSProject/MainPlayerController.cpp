@@ -12,8 +12,10 @@ void AMainPlayerController::BeginPlay() {
 		HUDOverlay = CreateWidget<UUserWidget>(this, HUDOverlayAsset);
 	}
 
-	HUDOverlay->AddToViewport();
-	HUDOverlay->SetVisibility(ESlateVisibility::Visible);
+	if (HUDOverlay) {
+		HUDOverlay->AddToViewport();
+		HUDOverlay->SetVisibility(ESlateVisibility::Visible);
+	}
 
 	if (WEnemyHealthBar) {
 		EnemyHealthBar = CreateWidget<UUserWidget>(this, WEnemyHealthBar);
