@@ -27,13 +27,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
 	TSubclassOf<UUserWidget> WEnemyHealthBar;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
+	TSubclassOf<UUserWidget> WPauseMenu;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
 	UUserWidget* EnemyHealthBar;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Widgets")
+	UUserWidget* PauseMenu;
+
 	bool bEnemyHealthBarVisible;
+	bool bPauseMenuVisible;
 
 	void DisplayEnemyHealthBar();
 	void RemoveEnemyHealthBar();
+	void DisplayPauseMenu();
+	void RemovePauseMenu();
+	void TogglePauseMenu();
+
 	FVector EnemyTargetLocation;
 
 protected:

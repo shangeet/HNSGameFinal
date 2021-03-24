@@ -25,6 +25,9 @@ public:
 	// Constructor
 	AMain();
 
+	UPROPERTY(EditDefaultsOnly, Category="SavedData")
+	TSubclassOf<class AWeaponSaver> WeaponSaver;
+
 	/*
 	Player Controller
 	*/
@@ -146,6 +149,11 @@ public:
 	void EDown();
 	void EUp();
 
+	//pause menu logic
+	bool bEscDown;
+	void EscDown();
+	void EscUp();
+
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	void DecrementHealth(float Amount);
 	void IncrementHealth(float Amount);
@@ -179,4 +187,10 @@ public:
 	void DeathEnd();
 
 	void SwitchLevel(FName LevelName);
+
+	UFUNCTION(BlueprintCallable)
+	void SaveGame();
+
+	UFUNCTION(BlueprintCallable)
+	void LoadGame(bool SetPosition);
 };

@@ -30,6 +30,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Combat")
 	float Damage;
+
+	UPROPERTY(EditDefaultsOnly, Category="SavedData")
+	FString Name;
 	
 	void Equip(class AMain* Char);
 
