@@ -15,12 +15,16 @@
 #include "Components/CapsuleComponent.h"
 #include "MainPlayerController.h"
 #include "Kismet/KismetMathLibrary.h"
-#include <Runtime/AIModule/Classes/BehaviorTree/BehaviorTreeComponent.h>
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "Runtime/AIModule/Classes/BehaviorTree/BehaviorTreeComponent.h"
 
 // Sets default values
-AEnemy::AEnemy(FObjectInitializer const& object_initializer = FObjectInitializer::Get())
+AEnemy::AEnemy()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// FObjectInitializer const& object_initializer = FObjectInitializer::Get()
 	PrimaryActorTick.bCanEverTick = true;
 
 	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
@@ -52,12 +56,12 @@ AEnemy::AEnemy(FObjectInitializer const& object_initializer = FObjectInitializer
 	bInterpToMain = false;
 	InterpSpeed = 15.f;
 
-	static ConstructorHelpers::FObjectFinder<UBehaviorTree> obj(TEXT("BehaviorTree'/Game/AI/NPC_BT.NPC_BT"));
+	static ConstructorHelpers::FObjectFinder<UBehaviorTree> obj(TEXT("BehaviorTree'/Game/AI/NPC_BT.NPC_BT'"));
 		if (obj.Succeeded()) {
-			btree = obj.Object;
+			Btree = obj.Object;
 		}
-	behavior_tree_component = object_initializer.CreateDefaultSubobject<UBehaviorTreeComponent>(this, TEXT("BehaviorComp"));
-	blackboard = object_initializer.CreateDefaultSubobject<UBlackboardComponent>(this, TEXT("BlackboardComp"));
+	BehaviorTreeComponent = CreateDefaultSubobject<UBehaviorTreeComponent>(TEXT("BehaviorComp"));
+	Blackboard = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
 
 }
 
@@ -68,8 +72,11 @@ void AEnemy::BeginPlay()
 	
 	UE_LOG(LogTemp, Warning, TEXT("Beginplay()"));
 	AIController = Cast<AAIController>(GetController());
-	RunBehaviorTree(btree);
-	behavior_tree_component->StartTree(*btree);
+	/*if (blackboard) {
+		blackboard->InitializeBlackboard(*btree->BlackboardAsset);
+	}
+	AIController.RunBehaviorTree(btree);*/
+	//behavior_tree_component->StartTree(*btree);
 	
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapEnd);
@@ -347,16 +354,6 @@ void AEnemy::Die(AActor* Causer) {
 	if (Main) {
 		Main->UpdateCombatTarget();
 	}
-
-
-}
-
-void AEnemy::OnPossess(APawn* const pawn) {
-	Super::OnPossess(pawn);
-	if (blackboard) {
-		InitializeBlackboard(*btree->BlackboardAsset);
-	}
-
 }
 
 void AEnemy::DeathEnd() {

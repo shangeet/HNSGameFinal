@@ -23,22 +23,25 @@ class HNSPROJECT_API AEnemy : public ACharacter
 {
 	GENERATED_BODY()
 
-private: 
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
-		class UBehaviorTreeComponent* behavior_tree_component;
+	
+
+public:
+	// Sets default values for this character's properties
+
+	AEnemy();
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
-		class UBehaviorTree* btree;
+	class UBehaviorTreeComponent* BehaviorTreeComponent;
 
-	class UBlackboardComponent* blackboard;
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
+	class UBehaviorTree* Btree;
+
+	class UBlackboardComponent* Blackboard;
 
 	class UAISenseConfig_Sight* sight_config;
 
 	class UAISenseConfig_Hearing* hearing_config;
-
-public:
-	// Sets default values for this character's properties
-	AEnemy(FObjectInitializer const& object_initializer = FObjectInitializer::Get());
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EEnemyState EEnemyStatus;
@@ -110,10 +113,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	void OnPossess(APawn* const pawn) override;
-
-	class UBlackboardComponent* get_blackboard() const;
 
 public:	
 
