@@ -15,9 +15,10 @@
 #include "Components/CapsuleComponent.h"
 #include "MainPlayerController.h"
 #include "Kismet/KismetMathLibrary.h"
+#include <Runtime/AIModule/Classes/BehaviorTree/BehaviorTreeComponent.h>
 
 // Sets default values
-AEnemy::AEnemy()
+AEnemy::AEnemy(FObjectInitializer const& object_initializer = FObjectInitializer::Get())
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -51,14 +52,24 @@ AEnemy::AEnemy()
 	bInterpToMain = false;
 	InterpSpeed = 15.f;
 
+	static ConstructorHelpers::FObjectFinder<UBehaviorTree> obj(TEXT("BehaviorTree'/Game/AI/NPC_BT.NPC_BT"));
+		if (obj.Succeeded()) {
+			btree = obj.Object;
+		}
+	behavior_tree_component = object_initializer.CreateDefaultSubobject<UBehaviorTreeComponent>(this, TEXT("BehaviorComp"));
+	blackboard = object_initializer.CreateDefaultSubobject<UBlackboardComponent>(this, TEXT("BlackboardComp"));
+
 }
 
 // Called when the game starts or when spawned
 void AEnemy::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	UE_LOG(LogTemp, Warning, TEXT("Beginplay()"));
 	AIController = Cast<AAIController>(GetController());
+	RunBehaviorTree(btree);
+	behavior_tree_component->StartTree(*btree);
 	
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapEnd);
@@ -337,6 +348,14 @@ void AEnemy::Die(AActor* Causer) {
 		Main->UpdateCombatTarget();
 	}
 
+
+}
+
+void AEnemy::OnPossess(APawn* const pawn) {
+	Super::OnPossess(pawn);
+	if (blackboard) {
+		InitializeBlackboard(*btree->BlackboardAsset);
+	}
 
 }
 

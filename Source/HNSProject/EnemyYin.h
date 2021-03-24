@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AIController.h"
 #include "Enemy.h"
 #include "EnemyYin.generated.h"
 
@@ -17,7 +18,7 @@ class HNSPROJECT_API AEnemyYin : public AEnemy
 public:
 
 	AEnemyYin();
-
+	//AEnemyYin(FObjectInitializer const& object_initializer = FObjectInitializer::Get());
 
 	// Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
@@ -36,5 +37,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool GetCanAttack();
 
-	virtual void AttackEnd() override;
+	virtual void AttackEnd() override; 
+private: 
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
+	class UBehaviorTreeComponent* behavior_tree;
 };

@@ -16,11 +16,36 @@
 #include "Components/CapsuleComponent.h"
 #include "MainPlayerController.h"
 #include "TimerManager.h"
+#include "UObject/ConstructorHelpers.h"
+
+AEnemyYin::AEnemyYin(FObjectInitializer const& object_initializer = FObjectInitializer::Get()) {
+	static ConstructorHelpers::FObjectFinder<UBehaviorTree> obj(TEXT("../AI/NPC_BT"))
+		if (obj.Succeeded()) {
+			btree = obj.Object;
+		}
+	behavior_tree_component = object_initializer.CreateDefaultSubobject<UBehaviorTreeComponent>(this, TEXT("BehaviorComp"));
+	blackboard = object_initializer.CreateDefaultSubobject<UBlackboardComponent>(this, TEXT("BlackboardComp"));
+
+	
+}
+
+void AEnemyYin::BeginPlay() {
+Super:BeginPlay();
+	RunBehaviorTree(btree);
+	behavior_tree_component->StartTree("btree");
+}
+
+void AEnemyYin::OnPossess(APawn* const pawn) {
+	Super::OnPossess(pawn); 
+	if (blackboard) {
+		blackboard->InitializeBlackboard(*btree->BlackboardAsset);
+	}
+}
 
 AEnemyYin::AEnemyYin() {
 	Damage = 10.f;
 	bCanAttack = true;
-	AttackMinTime = 0.5f;
+	AttackMinTime = 0.25f;
 	AttackMaxTime = 1.f;
 }
 
