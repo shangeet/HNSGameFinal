@@ -136,10 +136,15 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	bool CanMove(float Value);
 	//Moves forward AND backward
 	void MoveForward(float Value);
 	//Moves left AND right
 	void MoveRight(float Value);
+	//Turn Yaw Rotation
+	void Turn(float Value);
+	//Look up Pitch Rotation
+	void LookUp(float Value);
 	//Turn the character at a given rate (float -> 0 - 100)
 	void TurnAtRate(float Rate);
 	//Look up/down at a given rate
@@ -186,11 +191,18 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DeathEnd();
 
-	void SwitchLevel(FName LevelName);
+	void SwitchLevel(FString LevelName);
+	void SwitchSameLevel(FString LevelName);
 
 	UFUNCTION(BlueprintCallable)
 	void SaveGame();
 
 	UFUNCTION(BlueprintCallable)
 	void LoadGame(bool SetPosition);
+
+	void LoadState();
+	void SaveState();
+
+	UFUNCTION(BlueprintCallable)
+	void ResetState();
 };
