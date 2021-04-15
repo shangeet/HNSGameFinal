@@ -44,7 +44,6 @@ public:
 
 	class UBlackboardComponent* get_blackboard() const;
 
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EEnemyState EEnemyStatus;
 

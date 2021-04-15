@@ -15,10 +15,8 @@
 #include "Components/CapsuleComponent.h"
 #include "MainPlayerController.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Runtime/AIModule/Classes/BehaviorTree/BehaviorTreeComponent.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -369,4 +367,9 @@ bool AEnemy::Alive() {
 
 void AEnemy::Disappear() {
 	Destroy();
+}
+
+UBlackboardComponent* AEnemy::get_blackboard() const
+{
+	return Blackboard;
 }

@@ -22,5 +22,5 @@ public:
 	EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& owner_comp, uint8* node_memory);
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Search", meta = (AllowPrivateAccess = "true"))
-		float search_radius = 1500.0f;
+	float search_radius = 1500.0f;
 };
