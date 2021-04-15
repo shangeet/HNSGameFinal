@@ -3,26 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AIController.h"
 #include "Enemy.h"
 #include "EnemyYin.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class HNSPROJECT_API AEnemyYin : public AEnemy
 {
 	GENERATED_BODY()
-	
+
 public:
 
 	AEnemyYin();
-	//AEnemyYin(FObjectInitializer const& object_initializer = FObjectInitializer::Get());
+
 
 	// Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	bool bCanAttack;
+		bool bCanAttack;
 
 
 	// Functions
@@ -32,13 +31,10 @@ public:
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	UFUNCTION(BlueprintCallable)
-	void SetCanAttack(bool CanAttack);
+		void SetCanAttack(bool CanAttack);
 
 	UFUNCTION(BlueprintCallable)
-	bool GetCanAttack();
+		bool GetCanAttack();
 
-	virtual void AttackEnd() override; 
-private: 
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "AI", meta = (AllowPrivateAccess = "true"))
-	class UBehaviorTreeComponent* behavior_tree;
+	virtual void AttackEnd() override;
 };

@@ -41,7 +41,9 @@ public:
 	class UAISenseConfig_Sight* sight_config;
 
 	class UAISenseConfig_Hearing* hearing_config;
-	
+
+	class UBlackboardComponent* get_blackboard() const;
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	EEnemyState EEnemyStatus;

@@ -9,7 +9,7 @@ public class HNSProject : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", 
-			"UMG", "AIModule", "HeadMountedDisplay", "GameplayTask", "NavigationSystem"   });
+			"UMG", "AIModule", "HeadMountedDisplay", "GameplayTasks", "NavigationSystem"   });
 
 		// Uncomment if you are using Slate UI
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

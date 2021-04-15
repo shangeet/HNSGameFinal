@@ -72,11 +72,11 @@ void AEnemy::BeginPlay()
 	
 	UE_LOG(LogTemp, Warning, TEXT("Beginplay()"));
 	AIController = Cast<AAIController>(GetController());
-	/*if (blackboard) {
-		blackboard->InitializeBlackboard(*btree->BlackboardAsset);
+	if (Blackboard) {
+		Blackboard->InitializeBlackboard(*Btree->BlackboardAsset);
 	}
-	AIController.RunBehaviorTree(btree);*/
-	//behavior_tree_component->StartTree(*btree);
+	AIController->RunBehaviorTree(Btree);
+	BehaviorTreeComponent->StartTree(*Btree);
 	
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapEnd);
