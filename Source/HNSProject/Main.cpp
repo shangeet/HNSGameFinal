@@ -15,6 +15,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Enemy.h"
 #include "MainPlayerController.h"
+#include "HNSSaveGame.h"
+#include "WeaponSaver.h"
 
 // Sets default values
 AMain::AMain()
@@ -55,6 +57,7 @@ AMain::AMain()
 	GetCharacterMovement()->AirControl = 0.2f;
 
 	bEDown = false;
+	bEscDown = false;
 
 	MaxHealth = 100.f;
 
@@ -79,6 +82,12 @@ void AMain::BeginPlay()
 	Super::BeginPlay();
 
 	MainPlayerController = Cast<AMainPlayerController>(GetController());
+
+	if (MainPlayerController) {
+		MainPlayerController->GameModeOnly();
+	}
+
+	LoadState();
 	
 }
 
@@ -115,22 +124,45 @@ void AMain::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &AMain::EDown);
 	PlayerInputComponent->BindAction("Equip", IE_Released, this, &AMain::EUp);
-	UE_LOG(LogTemp, Warning, TEXT("EQUIP input component!"));
+	PlayerInputComponent->BindAction("ESC", IE_Pressed, this, &AMain::EscDown);
+	PlayerInputComponent->BindAction("ESC", IE_Released, this, &AMain::EscUp);
 
 	//Bind axis
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMain::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMain::MoveRight);
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Turn", this, &AMain::Turn);
+	PlayerInputComponent->BindAxis("LookUp", this, &AMain::LookUp);
 
-	PlayerInputComponent->BindAxis("TurnRate", this, &AMain::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUpAtRate", this, &AMain::LookUpAtRate);
+}
 
+bool AMain::CanMove(float Value) {
+
+	if (MainPlayerController) {
+		return Controller != NULL &&
+			Value != 0.0f &&
+			!bAttacking &&
+			(CurrentStatus != EMovementStatus::EMS_Dead) &&
+			!MainPlayerController->bPauseMenuVisible;
+	}
+	return false;
+}
+
+void AMain::Turn(float Value) {
+
+	if (CanMove(Value)) {
+		TurnAtRate(Value);
+	}
+}
+
+void AMain::LookUp(float Value) {
+	if (CanMove(Value)) {
+		LookUpAtRate(Value);
+	}
 }
 
 void AMain::MoveForward(float Value) {
 
-	if (Controller != NULL && Value != 0.0f && !bAttacking && (CurrentStatus != EMovementStatus::EMS_Dead)) {
+	if (CanMove(Value)) {
 		//Find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
@@ -141,7 +173,7 @@ void AMain::MoveForward(float Value) {
 }
 
 void AMain::MoveRight(float Value) {
-	if (Controller != NULL && Value != 0.0f && !bAttacking && (CurrentStatus != EMovementStatus::EMS_Dead)) {
+	if (CanMove(Value)) {
 		//Find out which way is Right
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
@@ -165,24 +197,38 @@ void AMain::EDown() {
 
 	if (CurrentStatus == EMovementStatus::EMS_Dead) return;
 
+	if (MainPlayerController) {
 
-	UE_LOG(LogTemp, Warning, TEXT("E down detected!"));
-	if (ActiveOverlappingItem) {
-		UE_LOG(LogTemp, Warning, TEXT("Overlapping item found! Equipping!"));
-		AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
-		if (Weapon) {
-			Weapon->Equip(this);
-			SetActiveOverlappingItem(nullptr);
+		if (MainPlayerController->bPauseMenuVisible) {
+			return;
 		}
-	}
-	else if (EquippedWeapon) {
-		Attack();
+
+		if (ActiveOverlappingItem) {
+			AWeapon* Weapon = Cast<AWeapon>(ActiveOverlappingItem);
+			if (Weapon) {
+				Weapon->Equip(this);
+				SetActiveOverlappingItem(nullptr);
+			}
+		} else if (EquippedWeapon) {
+			Attack();
+		}
 	}
 }
 
 void AMain::EUp() {
 	bEDown = false;
-	UE_LOG(LogTemp, Warning, TEXT("E up detected!"));
+}
+
+void AMain::EscDown() {
+	bEscDown = true;
+
+	if (MainPlayerController) {
+		MainPlayerController->TogglePauseMenu();
+	}
+}
+
+void AMain::EscUp() {
+	bEscDown = false;
 }
 
 void AMain::IncrementHealth(float Amount) {
@@ -320,6 +366,11 @@ void AMain::Die() {
 }
 
 void AMain::Jump() {
+	if (MainPlayerController) {
+		if (MainPlayerController->bPauseMenuVisible) {
+			return;
+		}
+	}
 	if (CurrentStatus != EMovementStatus::EMS_Dead) {
 		ACharacter::Jump();
 	}
@@ -366,8 +417,160 @@ void AMain::UpdateCombatTarget() {
 }
 
 void AMain::DeathEnd() {
-
-	
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
+}
+
+void AMain::SwitchLevel(FString LevelName) {
+	UWorld* World = GetWorld();
+
+	SaveState();
+
+	if (World) {
+		FString MapName = GetWorld()->GetMapName();
+		MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+		if (MapName != LevelName) {
+			FName LevelToChangeTo = *LevelName;
+			UGameplayStatics::OpenLevel(World, LevelToChangeTo);
+		}
+	}
+}
+
+void AMain::SwitchSameLevel(FString LevelName) {
+	UWorld* World = GetWorld();
+
+	if (World) {
+		FString MapName = GetWorld()->GetMapName();
+		MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+		if (MapName != LevelName) {
+			FName LevelToChangeTo = *LevelName;
+			UGameplayStatics::OpenLevel(World, LevelToChangeTo);
+		}
+	}
+}
+
+void AMain::SaveGame() {
+
+	UHNSSaveGame* SaveGameInstance = Cast<UHNSSaveGame>(UGameplayStatics::CreateSaveGameObject(UHNSSaveGame::StaticClass()));
+
+	SaveGameInstance->CharacterStats.Health = Health;
+	SaveGameInstance->CharacterStats.MaxHealth = MaxHealth;
+	SaveGameInstance->CharacterStats.Stamina = Stamina;
+	SaveGameInstance->CharacterStats.MaxStamina = MaxStamina;
+	SaveGameInstance->CharacterStats.Location = GetActorLocation();
+	SaveGameInstance->CharacterStats.Rotation = GetActorRotation();
+
+	FString MapName = GetWorld()->GetMapName();
+	MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+	SaveGameInstance->CharacterStats.LevelName = MapName;
+
+	if (EquippedWeapon) {
+		SaveGameInstance->CharacterStats.WeaponName = EquippedWeapon->Name;
+	}
+
+	UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->PlayerName, SaveGameInstance->UserIndex);
+
+}
+
+void AMain::LoadGame(bool SetPosition) {
+
+	UHNSSaveGame* LoadGameInstance = Cast<UHNSSaveGame>(UGameplayStatics::CreateSaveGameObject(UHNSSaveGame::StaticClass()));
+
+	LoadGameInstance = Cast<UHNSSaveGame>(UGameplayStatics::LoadGameFromSlot(LoadGameInstance->PlayerName, LoadGameInstance->UserIndex));
+
+	if (LoadGameInstance->CharacterStats.LevelName != TEXT("")) {
+		FString LevelName(LoadGameInstance->CharacterStats.LevelName);
+		SwitchSameLevel(LevelName);
+	}
+
+	Health = LoadGameInstance->CharacterStats.Health;
+	MaxHealth = LoadGameInstance->CharacterStats.MaxHealth;
+	Stamina = LoadGameInstance->CharacterStats.Stamina;
+	MaxStamina = LoadGameInstance->CharacterStats.MaxStamina;
+
+	if (LoadGameInstance->CharacterStats.WeaponName != "") {
+		if (WeaponSaver) {
+			AWeaponSaver* Weapons = GetWorld()->SpawnActor<AWeaponSaver>(WeaponSaver);
+			if (Weapons) {
+				FString WeaponName = LoadGameInstance->CharacterStats.WeaponName;
+				if (Weapons->WeaponMap.Contains(WeaponName)) {
+					AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Weapons->WeaponMap[WeaponName]);
+					WeaponToEquip->Equip(this);
+				}
+			}
+		}
+	}
+
+	if (SetPosition) {
+		SetActorLocation(LoadGameInstance->CharacterStats.Location);
+		SetActorRotation(LoadGameInstance->CharacterStats.Rotation);
+	}
+
+	SetEMovementStatus(EMovementStatus::EMS_Normal);
+	GetMesh()->bPauseAnims = false;
+	GetMesh()->bNoSkeletonUpdate = false;
+
+	SaveState();
+
+}
+
+void AMain::SaveState() {
+
+	UHNSSaveGame* SaveGameInstance = Cast<UHNSSaveGame>(UGameplayStatics::CreateSaveGameObject(UHNSSaveGame::StaticClass()));
+
+	SaveGameInstance->CharacterStats.Health = Health;
+	SaveGameInstance->CharacterStats.MaxHealth = MaxHealth;
+	SaveGameInstance->CharacterStats.Stamina = Stamina;
+	SaveGameInstance->CharacterStats.MaxStamina = MaxStamina;
+
+	if (EquippedWeapon) {
+		SaveGameInstance->CharacterStats.WeaponName = EquippedWeapon->Name;
+	}
+
+	UGameplayStatics::SaveGameToSlot(SaveGameInstance, "Temp", 10);
+
+}
+
+void AMain::LoadState() {
+
+	UHNSSaveGame* LoadGameInstance = Cast<UHNSSaveGame>(UGameplayStatics::CreateSaveGameObject(UHNSSaveGame::StaticClass()));
+
+	LoadGameInstance = Cast<UHNSSaveGame>(UGameplayStatics::LoadGameFromSlot("Temp", 10));
+
+	Health = LoadGameInstance->CharacterStats.Health;
+	MaxHealth = LoadGameInstance->CharacterStats.MaxHealth;
+	Stamina = LoadGameInstance->CharacterStats.Stamina;
+	MaxStamina = LoadGameInstance->CharacterStats.MaxStamina;
+
+	if (LoadGameInstance->CharacterStats.WeaponName != "") {
+		if (WeaponSaver) {
+			AWeaponSaver* Weapons = GetWorld()->SpawnActor<AWeaponSaver>(WeaponSaver);
+			if (Weapons) {
+				FString WeaponName = LoadGameInstance->CharacterStats.WeaponName;
+				if (Weapons->WeaponMap.Contains(WeaponName)) {
+					AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Weapons->WeaponMap[WeaponName]);
+					WeaponToEquip->Equip(this);
+				}
+			}
+		}
+	}
+
+	SetEMovementStatus(EMovementStatus::EMS_Normal);
+	GetMesh()->bPauseAnims = false;
+	GetMesh()->bNoSkeletonUpdate = false;
+
+}
+
+void AMain::ResetState() {
+
+	UHNSSaveGame* SaveGameInstance = Cast<UHNSSaveGame>(UGameplayStatics::CreateSaveGameObject(UHNSSaveGame::StaticClass()));
+
+	SaveGameInstance->CharacterStats.Health = MaxHealth;
+	SaveGameInstance->CharacterStats.MaxHealth = MaxHealth;
+	SaveGameInstance->CharacterStats.Stamina = MaxStamina;
+	SaveGameInstance->CharacterStats.MaxStamina = MaxStamina;
+	SaveGameInstance->CharacterStats.WeaponName = "";
+
+	UGameplayStatics::SaveGameToSlot(SaveGameInstance, "Temp", 10);
+
 }
